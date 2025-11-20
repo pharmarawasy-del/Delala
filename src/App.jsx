@@ -7,6 +7,7 @@ import OathModal from './components/OathModal';
 import HomePage from './pages/HomePage';
 import PostAdPage from './pages/PostAdPage';
 import AdDetailsPage from './pages/AdDetailsPage';
+import Footer from './components/Footer';
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -70,6 +71,8 @@ function App() {
           isOpen={isOathModalOpen}
           onClose={() => setIsOathModalOpen(false)}
         />
+
+        <Footer />
       </div>
     </BrowserRouter>
   );

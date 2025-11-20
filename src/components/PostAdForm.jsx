@@ -22,6 +22,7 @@ export default function PostAdForm() {
         title: '',
         price: '',
         location: 'Khartoum',
+        phone: '',
         description: '',
     });
 
@@ -125,7 +126,7 @@ export default function PostAdForm() {
                 price: formData.price,
                 city: formData.location,
                 category: formData.category,
-                phone: '0912345678', // Mock phone
+                phone: formData.phone,
                 description: formData.description,
                 images: uploadedUrls // Send array of strings
             };
@@ -234,6 +235,20 @@ export default function PostAdForm() {
                             <option value="الفاشر">الفاشر</option>
                             <option value="نيالا">نيالا</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف للتواصل</label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            required
+                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none text-left"
+                            placeholder="0xxxxxxxxx"
+                            dir="ltr"
+                        />
                     </div>
 
                     <div>

@@ -1,9 +1,17 @@
-import { Link } from 'react-router-dom';
-import { Menu, PlusCircle, LogIn, Search, X, Home, User, FileText, Phone } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, PlusCircle, LogIn, Search, X, Home, User, FileText, Phone, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { supabase } from '../supabase';
 
-export default function Header({ onLoginClick, onPostAdClick, onSearch }) {
+export default function Header({ user, onLoginClick, onPostAdClick, onSearch }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        setIsMenuOpen(false);
+        navigate('/');
+    };
 
     return (
         <header className="sticky top-0 z-50 shadow-md">
@@ -23,14 +31,31 @@ export default function Header({ onLoginClick, onPostAdClick, onSearch }) {
                         </Link>
                     </div>
 
-                    {/* Left: Login Link */}
-                    <button
-                        onClick={onLoginClick}
-                        className="flex items-center gap-2 text-white hover:text-white/80 transition-colors font-medium text-sm"
-                    >
-                        <LogIn className="w-4 h-4" />
-                        <span>دخول</span>
-                    </button>
+                    {/* Left: Login Link or User Avatar */}
+                    {user ? (
+                        <Link to="/profile" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/30">
+                                {user.profile_picture_url ? (
+                                    <img src={user.profile_picture_url} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#F59E0B] to-[#d97706] text-white font-bold text-xs">
+                                        {user.first_name ? user.first_name.substring(0, 2).toUpperCase() : <User className="w-5 h-5" />}
+                                    </div>
+                                )}
+                            </div>
+                            <span className="text-sm font-bold hidden md:block">
+                                {user.first_name ? `${user.first_name} ${user.last_name || ''}` : 'المستخدم'}
+                            </span>
+                        </Link>
+                    ) : (
+                        <button
+                            onClick={onLoginClick}
+                            className="flex items-center gap-2 text-white hover:text-white/80 transition-colors font-medium text-sm"
+                        >
+                            <LogIn className="w-4 h-4" />
+                            <span>دخول</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -95,16 +120,38 @@ export default function Header({ onLoginClick, onPostAdClick, onSearch }) {
                                     <span className="font-bold">الرئيسية</span>
                                 </Link>
 
-                                <button
-                                    onClick={() => {
-                                        setIsMenuOpen(false);
-                                        onLoginClick();
-                                    }}
-                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
-                                >
-                                    <User className="w-5 h-5" />
-                                    <span className="font-bold">حسابي</span>
-                                </button>
+                                {user ? (
+                                    <>
+                                        <Link
+                                            to="/profile"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
+                                        >
+                                            <User className="w-5 h-5" />
+                                            <span className="font-bold">حسابي</span>
+                                        </Link>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 transition-colors text-red-600"
+                                        >
+                                            <LogOut className="w-5 h-5" />
+                                            <span className="font-bold">تسجيل الخروج</span>
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            onLoginClick();
+                                        }}
+                                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
+                                    >
+                                        <LogIn className="w-5 h-5" />
+                                        <span className="font-bold">تسجيل الدخول</span>
+                                    </button>
+                                )}
+
+                                <div className="border-t border-gray-100 my-2"></div>
 
                                 <button
                                     className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"

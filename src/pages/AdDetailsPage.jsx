@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { Phone, MapPin, Clock, User, ArrowRight, MessageCircle } from 'lucide-react';
+import { Phone, MapPin, Clock, User, ArrowRight, MessageCircle, Heart, Share2, Flag, Send } from 'lucide-react';
 
 export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
     const { id } = useParams();
@@ -9,6 +9,8 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
     const [ad, setAd] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [commentText, setCommentText] = useState('');
     const imageContainerRef = useRef(null);
 
     useEffect(() => {
@@ -49,10 +51,39 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
     };
 
     const handleWhatsAppClick = () => {
-        // Assuming Sudan number format or international format
         const phone = ad.phone || '';
         const message = encodeURIComponent(`مرحباً، بخصوص إعلانك "${ad.title}" على دلالة...`);
         window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    };
+
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: ad.title,
+                    text: `شوف الإعلان ده في دلالة! ${ad.title} بسعر ${Number(ad.price).toLocaleString()} SDG`,
+                    url: window.location.href,
+                });
+            } catch (error) {
+                console.log('Error sharing:', error);
+            }
+        } else {
+            alert('تم نسخ الرابط للحافظة');
+            navigator.clipboard.writeText(window.location.href);
+        }
+    };
+
+    const handleReport = () => {
+        alert('تم تقديم البلاغ للإدارة. شكراً لمساعدتك في الحفاظ على جودة المحتوى.');
+    };
+
+    const toggleFavorite = () => {
+        if (!isLoggedIn) {
+            onLoginClick();
+            return;
+        }
+        setIsFavorite(!isFavorite);
+        // TODO: Implement DB persistence
     };
 
     if (loading) return <div className="text-center py-20 text-gray-500">جاري التحميل...</div>;
@@ -62,13 +93,18 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
     const imagesToDisplay = hasMultipleImages ? ad.images : [ad.image_url || "https://placehold.co/600x400?text=No+Image"];
 
     return (
-        <div className="bg-white min-h-screen pb-24">
+        <div className="bg-white min-h-screen pb-32">
             {/* Header / Back Button */}
-            <div className="p-4 border-b border-gray-100 flex items-center gap-2 sticky top-0 bg-white z-10 shadow-sm">
-                <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full">
-                    <ArrowRight className="w-6 h-6 text-gray-600" />
-                </button>
-                <span className="font-bold text-gray-800">تفاصيل الإعلان</span>
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm">
+                <div className="flex items-center gap-2">
+                    <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full">
+                        <ArrowRight className="w-6 h-6 text-gray-600" />
+                    </button>
+                    <span className="font-bold text-gray-800">تفاصيل الإعلان</span>
+                </div>
+                <div className="text-xs text-gray-400 font-mono">
+                    #{ad.id.toString().slice(0, 8)}
+                </div>
             </div>
 
             {/* Image Gallery */}
@@ -89,22 +125,10 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
                     ))}
                 </div>
 
-                {/* Image Counter (1/5) */}
+                {/* Image Counter */}
                 {hasMultipleImages && ad.images.length > 1 && (
                     <div className="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs backdrop-blur-sm font-medium tracking-wider">
                         {currentImageIndex + 1} / {ad.images.length}
-                    </div>
-                )}
-
-                {/* Dots Indicator (Optional, centered) */}
-                {hasMultipleImages && ad.images.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1.5">
-                        {ad.images.map((_, idx) => (
-                            <div
-                                key={idx}
-                                className={`w-1.5 h-1.5 rounded-full transition-all ${currentImageIndex === idx ? 'bg-white w-3' : 'bg-white/50'}`}
-                            />
-                        ))}
                     </div>
                 )}
             </div>
@@ -112,7 +136,9 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
             {/* Content */}
             <div className="p-4">
                 {/* Title & Price */}
-                <h1 className="text-2xl font-bold text-[#009688] mb-2 leading-snug">{ad.title}</h1>
+                <div className="flex justify-between items-start mb-2">
+                    <h1 className="text-2xl font-bold text-[#009688] leading-snug flex-1 ml-4">{ad.title}</h1>
+                </div>
                 <p className="text-3xl font-bold text-[#F59E0B] mb-4">{Number(ad.price).toLocaleString()} SDG</p>
 
                 {/* Meta Data */}
@@ -124,6 +150,9 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
                     <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
                         <span>{new Date(ad.created_at).toLocaleDateString('ar-EG')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-gray-400">رقم الإعلان: {ad.id}</span>
                     </div>
                 </div>
 
@@ -145,36 +174,85 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
                         {ad.description}
                     </p>
                 </div>
+
+                {/* Comments Section */}
+                <div className="border-t border-gray-100 pt-6 mb-8">
+                    <h3 className="font-bold text-gray-800 mb-4 text-lg">الردود (0)</h3>
+
+                    {/* Mock Comments List */}
+                    <div className="space-y-4 mb-6">
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                                    <User className="w-3 h-3 text-gray-500" />
+                                </div>
+                                <span className="text-xs font-bold text-gray-700">مستخدم</span>
+                                <span className="text-[10px] text-gray-400">قبل ساعة</span>
+                            </div>
+                            <p className="text-sm text-gray-600">هل السعر قابل للتفاوض؟</p>
+                        </div>
+                    </div>
+
+                    {/* Add Comment Input */}
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            placeholder="أضف ردك هنا..."
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[#009688] transition-colors"
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                        />
+                        <button className="bg-[#009688] text-white p-2 rounded-full hover:bg-teal-700 transition-colors">
+                            <Send className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            {/* Sticky Footer (Action Bar) */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-20">
-                {/* Button 1: Share App (Gray/Blue) */}
-                <button
-                    onClick={() => {
-                        const text = encodeURIComponent(`شوف الإعلان ده في دلالة! 🔥\n${ad.title} - ${Number(ad.price).toLocaleString()} SDG\n${window.location.href}`);
-                        window.open(`https://wa.me/?text=${text}`, '_blank');
-                    }}
-                    className="bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-bold flex items-center justify-center hover:bg-gray-200 transition-colors"
-                >
-                    <MessageCircle className="w-5 h-5" />
-                </button>
-
-                {/* Button 2: WhatsApp (Green) */}
+            {/* Control Center Toolbar (Sticky Footer) */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-20 safe-area-pb">
+                {/* Message */}
                 <button
                     onClick={handleWhatsAppClick}
-                    className="flex-1 bg-[#25D366] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-colors"
+                    className="flex flex-col items-center gap-1 text-gray-600 hover:text-[#009688] transition-colors min-w-[60px]"
                 >
-                    <MessageCircle className="w-5 h-5" />
-                    <span>واتسآب</span>
+                    <MessageCircle className="w-6 h-6" />
+                    <span className="text-[10px] font-medium">مراسلة</span>
                 </button>
 
-                {/* Button 3: Call (Blue) */}
+                {/* Favorite */}
+                <button
+                    onClick={toggleFavorite}
+                    className={`flex flex-col items-center gap-1 transition-colors min-w-[60px] ${isFavorite ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
+                >
+                    <Heart className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
+                    <span className="text-[10px] font-medium">تفضيل</span>
+                </button>
+
+                {/* Share */}
+                <button
+                    onClick={handleShare}
+                    className="flex flex-col items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors min-w-[60px]"
+                >
+                    <Share2 className="w-6 h-6" />
+                    <span className="text-[10px] font-medium">مشاركة</span>
+                </button>
+
+                {/* Report */}
+                <button
+                    onClick={handleReport}
+                    className="flex flex-col items-center gap-1 text-gray-600 hover:text-red-600 transition-colors min-w-[60px]"
+                >
+                    <Flag className="w-6 h-6" />
+                    <span className="text-[10px] font-medium">بلاغ</span>
+                </button>
+
+                {/* Call Button (Prominent) */}
                 <button
                     onClick={handleCallClick}
-                    className="flex-1 bg-[#115ea3] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-800 transition-colors"
+                    className="bg-[#115ea3] text-white px-6 py-2 rounded-full font-bold flex items-center gap-2 hover:bg-blue-800 transition-colors mr-2"
                 >
-                    <Phone className="w-5 h-5" />
+                    <Phone className="w-4 h-4" />
                     <span>إتصال</span>
                 </button>
             </div>

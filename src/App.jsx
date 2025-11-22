@@ -109,12 +109,12 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-20 h-20 bg-[#115ea3] rounded-2xl flex items-center justify-center text-white font-black text-4xl shadow-lg" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-            د
-          </div>
-          <div className="h-2 w-32 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-[#115ea3] w-1/2 animate-[shimmer_1s_infinite_linear]"></div>
+        <div className="animate-pulse flex flex-col items-center gap-6">
+          <span className="text-8xl font-black text-[#115ea3] tracking-tighter" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+            دلالة
+          </span>
+          <div className="h-1.5 w-48 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#115ea3] w-1/3 animate-[shimmer_1s_infinite_linear]"></div>
           </div>
         </div>
       </div>

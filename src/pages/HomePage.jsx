@@ -19,7 +19,8 @@ export default function HomePage({ onContactClick, searchTerm }) {
             let query = supabase
                 .from('ads')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(20);
 
             if (selectedCategory) {
                 query = query.eq('category', selectedCategory);

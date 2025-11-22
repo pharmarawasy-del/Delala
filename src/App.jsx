@@ -34,6 +34,11 @@ function App() {
 
     // Check active session and set up listener
     const initializeAuth = async () => {
+      // Safety timeout to ensure we don't get stuck on loading
+      const timeoutId = setTimeout(() => {
+        setLoading(false);
+      }, 3000);
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
@@ -42,6 +47,7 @@ function App() {
       } catch (error) {
         console.error('Auth initialization error:', error);
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };

@@ -11,6 +11,7 @@ export default function ListingCard({ item, onContactClick }) {
                     <img
                         src={item.images && item.images.length > 0 ? item.images[0] : "https://placehold.co/600x400?text=No+Image"}
                         alt={item.title}
+                        loading="lazy"
                         className="w-full h-full object-cover rounded-md border border-gray-200"
                     />
                 </div>

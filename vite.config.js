@@ -10,12 +10,14 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Delala | دلالة',
+        name: 'دلالة | سوق السودان المفتوح',
         short_name: 'دلالة',
-        description: 'أكبر سوق إلكتروني في السودان',
+        description: 'أكبر سوق للعقارات والسيارات والمستعمل في السودان. بيع واشتري بأمان.',
+        start_url: '/',
+        display: 'standalone',
+        orientation: 'portrait',
         theme_color: '#115ea3',
         background_color: '#ffffff',
-        display: 'standalone',
         icons: [
           {
             src: 'https://placehold.co/192x192/115ea3/ffffff?text=Delala',
@@ -26,6 +28,12 @@ export default defineConfig({
             src: 'https://placehold.co/512x512/115ea3/ffffff?text=Delala',
             sizes: '512x512',
             type: 'image/png'
+          },
+          {
+            src: 'https://placehold.co/512x512/115ea3/ffffff?text=Delala',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }

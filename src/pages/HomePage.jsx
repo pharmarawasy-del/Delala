@@ -35,7 +35,7 @@ export default function HomePage({ onContactClick, searchTerm }) {
             if (error) throw error;
             setAds(data || []);
         } catch (error) {
-            console.error('Error fetching ads:', error);
+            console.error('Error fetching ads:', error.message, error.details, error.hint);
         } finally {
             setLoading(false);
         }

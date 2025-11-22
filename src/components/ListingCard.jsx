@@ -3,13 +3,18 @@ import { MapPin, User, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function ListingCard({ item, onContactClick }) {
+    // Defensive coding: Ensure images array exists and has items
+    const thumbnail = (Array.isArray(item.images) && item.images.length > 0)
+        ? item.images[0]
+        : "https://placehold.co/600x400?text=No+Image";
+
     return (
         <div className="bg-white border-b border-gray-200 py-3 px-2 hover:bg-gray-50 transition-colors">
             <Link to={`/ad/${item.id}`} className="flex gap-3">
                 {/* Image - Right Side (RTL) */}
                 <div className="w-28 h-28 flex-shrink-0">
                     <img
-                        src={item.images && item.images.length > 0 ? item.images[0] : "https://placehold.co/600x400?text=No+Image"}
+                        src={thumbnail}
                         alt={item.title}
                         loading="lazy"
                         className="w-full h-full object-cover rounded-md border border-gray-200"

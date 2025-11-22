@@ -14,6 +14,7 @@ import MyAds from './pages/MyAds';
 import Footer from './components/Footer';
 import TermsPage from './pages/TermsPage';
 import ContactPage from './pages/ContactPage';
+import InstallPrompt from './components/InstallPrompt';
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -154,6 +155,7 @@ function App() {
         />
 
         <Footer />
+        <InstallPrompt />
       </div>
     </BrowserRouter>
   );

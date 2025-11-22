@@ -25,3 +25,16 @@ body {
   scrollbar-width: none;
   /* Firefox */
 }
+
+/* Mobile Touch Targets */
+button,
+a,
+input,
+select {
+  min-height: 44px;
+}
+
+/* Safe Area Utilities */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}

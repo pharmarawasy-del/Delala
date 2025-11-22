@@ -43,6 +43,13 @@ select {
   padding-top: env(safe-area-inset-top);
 }
 
+.safe-top-padding {
+  padding-top: env(safe-area-inset-top, 20px);
+  /* Fallback to 20px */
+  min-height: calc(env(safe-area-inset-top, 20px) + 60px);
+  /* Force minimum height */
+}
+
 /* Responsive Typography */
 @media (max-width: 640px) {
   h1 {

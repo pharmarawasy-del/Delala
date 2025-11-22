@@ -16,7 +16,7 @@ export default function Header({ user, onLoginClick, onPostAdClick, onSearch }) 
     return (
         <header className="sticky top-0 z-50 shadow-md">
             {/* ROW 1: Brand Bar (Blue) - Menu, Logo, Login */}
-            <div className="bg-[#115ea3] text-white">
+            <div className="bg-[#115ea3] text-white pt-safe">
                 <div className="container mx-auto px-4 h-14 flex items-center justify-between">
                     {/* Right: Menu Icon + Logo */}
                     <div className="flex items-center gap-2">

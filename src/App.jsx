@@ -22,6 +22,7 @@ function App() {
   const [isProfileSetupOpen, setIsProfileSetupOpen] = useState(false);
   const [profileSetupUserId, setProfileSetupUserId] = useState(null);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -31,17 +32,28 @@ function App() {
       setIsProfileSetupOpen(true);
     };
 
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user);
+    // Check active session and set up listener
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchProfile(session.user);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        fetchProfile(session.user);
+        // We might want to avoid re-fetching if we already have the user, 
+        // but for now, ensuring we have the profile is safer.
+        await fetchProfile(session.user);
       } else {
         setUser(null);
       }
@@ -94,9 +106,24 @@ function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-20 h-20 bg-[#115ea3] rounded-2xl flex items-center justify-center text-white font-black text-4xl shadow-lg" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+            د
+          </div>
+          <div className="h-2 w-32 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#115ea3] w-1/2 animate-[shimmer_1s_infinite_linear]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-white font-sans" dir="rtl">
+      <div className="min-h-screen bg-white font-sans pb-24" dir="rtl">
         <Header
           user={user}
           onLoginClick={() => setIsLoginModalOpen(true)}

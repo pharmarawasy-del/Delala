@@ -62,9 +62,9 @@ const ContactPage = () => {
                     نحن هنا للاستماع والمساعدة. املأ النموذج أدناه وسيصلك الرد قريباً.
                 </p>
 
-                <div className="grid md:grid-cols-2 gap-8">
+                <div className="max-w-2xl mx-auto">
                     {/* Contact Form */}
-                    <div className="bg-white p-6 rounded-lg shadow-md order-2 md:order-1">
+                    <div className="bg-white p-6 rounded-lg shadow-md">
                         <h2 className="text-xl font-bold mb-6 text-gray-800">أرسل لنا رسالة</h2>
 
                         {isSubmitted ? (
@@ -138,55 +138,6 @@ const ContactPage = () => {
                                 إرسال الرسالة
                             </button>
                         </form>
-                    </div>
-
-                    {/* Contact Info */}
-                    <div className="flex flex-col gap-6 order-1 md:order-2">
-                        <div className="bg-[#115ea3] text-white p-6 rounded-lg shadow-md">
-                            <h2 className="text-xl font-bold mb-4">معلومات التواصل</h2>
-                            <p className="mb-6 text-blue-100">
-                                نحن هنا لمساعدتك. لا تتردد في التواصل معنا عبر أي من القنوات التالية.
-                            </p>
-
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white/20 p-2 rounded-full">
-                                        <Mail className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-blue-200">البريد الإلكتروني</div>
-                                        <div className="font-bold dir-ltr text-right">support@delala.sd</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white/20 p-2 rounded-full">
-                                        <Phone className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-blue-200">واتساب / هاتف</div>
-                                        <div className="font-bold dir-ltr text-right">+249 123 456 789</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white/20 p-2 rounded-full">
-                                        <MapPin className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-blue-200">المقر الرئيسي</div>
-                                        <div className="font-bold">الخرطوم، السودان</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-6 rounded-lg shadow-md">
-                            <h3 className="font-bold text-gray-800 mb-2">ساعات العمل</h3>
-                            <p className="text-gray-600 text-sm">
-                                فريق الدعم متواجد لخدمتكم يومياً من الساعة 9 صباحاً وحتى 10 مساءً بتوقيت السودان.
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>

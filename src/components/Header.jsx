@@ -161,19 +161,23 @@ export default function Header({ user, onLoginClick, onPostAdClick, onSearch }) 
 
                                 <div className="border-t border-gray-100 my-2"></div>
 
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
+                                <Link
+                                    to="/terms"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
                                 >
                                     <FileText className="w-5 h-5" />
                                     <span className="font-bold">اتفاقية الاستخدام</span>
-                                </button>
+                                </Link>
 
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
+                                <Link
+                                    to="/contact"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
                                 >
                                     <Phone className="w-5 h-5" />
                                     <span className="font-bold">اتصل بنا</span>
-                                </button>
+                                </Link>
                             </nav>
                         </div>
                     </div>

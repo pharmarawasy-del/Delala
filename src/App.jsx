@@ -12,6 +12,8 @@ import AdDetailsPage from './pages/AdDetailsPage';
 import ProfilePage from './pages/ProfilePage';
 import MyAds from './pages/MyAds';
 import Footer from './components/Footer';
+import TermsPage from './pages/TermsPage';
+import ContactPage from './pages/ContactPage';
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -131,6 +133,8 @@ function App() {
             path="/my-ads"
             element={user ? <MyAds /> : <Navigate to="/" replace />}
           />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
         </Routes>
 
         <LoginModal

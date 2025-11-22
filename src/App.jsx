@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage';
 import PostAdPage from './pages/PostAdPage';
 import AdDetailsPage from './pages/AdDetailsPage';
 import ProfilePage from './pages/ProfilePage';
+import MyAds from './pages/MyAds';
 import Footer from './components/Footer';
 
 function App() {
@@ -125,6 +126,10 @@ function App() {
           <Route
             path="/profile"
             element={user ? <ProfilePage /> : <Navigate to="/" replace />}
+          />
+          <Route
+            path="/my-ads"
+            element={user ? <MyAds /> : <Navigate to="/" replace />}
           />
         </Routes>
 

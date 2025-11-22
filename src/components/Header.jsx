@@ -130,6 +130,14 @@ export default function Header({ user, onLoginClick, onPostAdClick, onSearch }) 
                                             <User className="w-5 h-5" />
                                             <span className="font-bold">حسابي</span>
                                         </Link>
+                                        <Link
+                                            to="/my-ads"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-[#115ea3]"
+                                        >
+                                            <FileText className="w-5 h-5" />
+                                            <span className="font-bold">إعلاناتي</span>
+                                        </Link>
                                         <button
                                             onClick={handleLogout}
                                             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 transition-colors text-red-600"

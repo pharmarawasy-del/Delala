@@ -128,7 +128,8 @@ export default function PostAdForm() {
                 category: formData.category,
                 phone: formData.phone,
                 description: formData.description,
-                images: uploadedUrls // Send array of strings
+                images: uploadedUrls, // Send array of strings
+                user_id: (await supabase.auth.getUser()).data.user?.id
             };
 
             console.log("Sending payload to Supabase:", payload);

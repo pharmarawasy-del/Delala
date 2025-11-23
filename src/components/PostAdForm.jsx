@@ -167,6 +167,22 @@ export default function PostAdForm() {
                 savedUrls.push('https://placehold.co/600x400/f1f5f9/475569?text=Delala');
             }
 
+            const { data: { user } } = await supabase.auth.getUser();
+
+            // Fetch user profile to get the name
+            let userName = 'مستخدم';
+            if (user) {
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('first_name')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileData?.first_name) {
+                    userName = profileData.first_name;
+                }
+            }
+
             const payload = {
                 title: formData.title,
                 price: formData.price,
@@ -175,7 +191,8 @@ export default function PostAdForm() {
                 phone: formData.phone,
                 description: formData.description,
                 images: savedUrls, // Send array of strings
-                user_id: (await supabase.auth.getUser()).data.user?.id
+                user_id: user?.id,
+                user_name: userName
             };
 
             console.log("Sending payload to Supabase:", payload);

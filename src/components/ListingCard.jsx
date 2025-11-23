@@ -50,7 +50,7 @@ export default function ListingCard({ item, onContactClick }) {
                             <span className="text-gray-300">|</span>
                             <div className="flex items-center gap-1">
                                 <User className="w-3 h-3" />
-                                <span>المستخدم</span>
+                                <span>{item.user_name || 'المستخدم'}</span>
                             </div>
                             <span className="text-gray-300">|</span>
                             <div className="flex items-center gap-1">

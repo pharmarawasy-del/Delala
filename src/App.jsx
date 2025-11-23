@@ -61,10 +61,14 @@ function App() {
     // 3. Set up listener for future changes (sign in, sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        // Only fetch profile if we don't already have the user data or if it's a different user
+        // This prevents unnecessary re-fetches, but for now, let's keep it simple and safe
         await fetchProfile(session.user);
       } else {
         setUser(null);
       }
+      // Ensure loading is false if auth state changes (e.g. after logout)
+      if (mounted) setLoading(false);
     });
 
     return () => {

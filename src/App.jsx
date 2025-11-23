@@ -16,7 +16,7 @@ import TermsPage from './pages/TermsPage';
 import ContactPage from './pages/ContactPage';
 import InstallPrompt from './components/InstallPrompt';
 import AdminRoute from './components/AdminRoute';
-import Dashboard from './pages/admin/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -251,7 +251,7 @@ function App() {
             path="/admin"
             element={
               <AdminRoute user={user}>
-                <Dashboard />
+                <AdminDashboard user={user} />
               </AdminRoute>
             }
           />

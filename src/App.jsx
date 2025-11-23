@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './supabase';
 import Header from './components/Header';
@@ -114,9 +115,7 @@ function App() {
     }
   };
 
-  import { Loader2 } from 'lucide-react';
 
-  // ... existing imports ...
 
   if (loading) {
     return (

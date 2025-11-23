@@ -78,8 +78,9 @@ export default function PostAdForm() {
         setIsSubmitting(true);
         setUploadProgress('جاري التحضير...');
         const savedUrls = [];
+        let hasImageUploadError = false;
 
-        // 1. Upload Images Sequentially (Bulletproof Loop)
+        // 1. Upload Images Sequentially (Fail-Safe)
         if (imageFiles.length > 0) {
             let count = 0;
             for (const file of imageFiles) {
@@ -103,31 +104,29 @@ export default function PostAdForm() {
                                 file.name.replace(/\.(heic|heif)$/i, '.jpg'),
                                 { type: 'image/jpeg' }
                             );
-                            // console.log(`Converted HEIC to JPEG: ${fileToProcess.name}`);
                         } catch (heicError) {
-                            console.warn("HEIC conversion failed, attempting normal compression:", heicError);
+                            console.warn("HEIC conversion failed or dependency missing, attempting normal compression:", heicError);
+                            // Do not fail here, try to process original file
                         }
                     }
 
                     // B. Universal Compression & JPEG Conversion
                     const options = {
-                        maxSizeMB: 0.8,          // Compress to ~800KB
-                        maxWidthOrHeight: 1920,  // HD Resolution limit
+                        maxSizeMB: 0.8,
+                        maxWidthOrHeight: 1920,
                         useWebWorker: true,
-                        fileType: "image/jpeg"   // FORCE conversion to JPEG
+                        fileType: "image/jpeg"
                     };
 
                     let fileToUpload = fileToProcess;
                     try {
                         const compressedFile = await imageCompression(fileToProcess, options);
                         fileToUpload = compressedFile;
-                        // console.log(`Processed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB (JPEG)`);
                     } catch (compressionError) {
                         console.warn("Image compression failed, using original file:", compressionError);
                     }
 
-                    // Sanitize Name (User Directive)
-                    // Ensure extension is .jpg
+                    // Sanitize Name
                     const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
 
                     const { error: uploadError } = await supabase.storage
@@ -136,7 +135,8 @@ export default function PostAdForm() {
 
                     if (uploadError) {
                         console.error(`Upload failed for image ${count}:`, uploadError);
-                        continue; // Continue to next image
+                        hasImageUploadError = true;
+                        continue;
                     }
 
                     const { data: publicUrlData } = supabase.storage
@@ -145,26 +145,26 @@ export default function PostAdForm() {
 
                     if (publicUrlData?.publicUrl) {
                         savedUrls.push(publicUrlData.publicUrl);
+                    } else {
+                        hasImageUploadError = true;
                     }
 
                 } catch (err) {
                     console.error(`Unexpected error uploading image ${count}:`, err);
-                    // Continue to next image
+                    hasImageUploadError = true;
                 }
             }
         }
 
         setUploadProgress('جاري حفظ الإعلان...');
-        // console.log('Final Images to Save:', savedUrls);
 
-        // 2. Database Insert
+        // 2. Database Insert (Force Proceed)
         try {
-            // Allow saving even if no images uploaded (or use placeholder if preferred, but user said "Only insert... if savedUrls.length > 0 (or allow empty)")
-            // I will allow empty to be safe, but maybe add a placeholder if empty like before?
-            // User said: "Only insert into ads table if savedUrls.length > 0 (or allow empty if needed)."
-            // I'll stick to the previous behavior of adding a placeholder if empty, to ensure the UI looks good.
+            // Fallback if no images saved
             if (savedUrls.length === 0) {
                 savedUrls.push('https://placehold.co/600x400/f1f5f9/475569?text=Delala');
+                // If user attempted to upload images but none succeeded, mark as partial error
+                if (imageFiles.length > 0) hasImageUploadError = true;
             }
 
             const { data: { user } } = await supabase.auth.getUser();
@@ -190,7 +190,7 @@ export default function PostAdForm() {
                 category: formData.category,
                 phone: formData.phone,
                 description: formData.description,
-                images: savedUrls, // Send array of strings
+                images: savedUrls,
                 user_id: user?.id,
                 user_name: userName
             };
@@ -203,7 +203,11 @@ export default function PostAdForm() {
 
             if (error) throw error;
 
-            alert('تم نشر الإعلان بنجاح!');
+            if (hasImageUploadError) {
+                alert('تم نشر الإعلان (ولكن تعذر رفع بعض أو كل الصور، حاول تعديله لاحقاً)');
+            } else {
+                alert('تم نشر الإعلان بنجاح!');
+            }
             navigate('/');
         } catch (error) {
             console.error('FATAL: Database Insert Failed:', error);

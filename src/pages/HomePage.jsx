@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import ListingCard from '../components/ListingCard';
 import Hero from '../components/Hero';
 import Categories from '../components/Categories';
 import { supabase } from '../supabase';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 8;
 
 export default function HomePage({ onContactClick, searchTerm }) {
     const [ads, setAds] = useState([]);
@@ -15,17 +15,7 @@ export default function HomePage({ onContactClick, searchTerm }) {
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
 
-    const observer = useRef();
-    const lastAdElementRef = useCallback(node => {
-        if (loading || loadingMore) return;
-        if (observer.current) observer.current.disconnect();
-        observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasMore) {
-                setPage(prevPage => prevPage + 1);
-            }
-        });
-        if (node) observer.current.observe(node);
-    }, [loading, loadingMore, hasMore]);
+    const sentinelRef = useRef(null);
 
     // Reset and fetch when filters change
     useEffect(() => {
@@ -35,12 +25,31 @@ export default function HomePage({ onContactClick, searchTerm }) {
         fetchAds(0, true);
     }, [selectedCategory, searchTerm]);
 
-    // Fetch more when page changes (but not on initial reset which is handled above)
+    // Fetch more when page changes
     useEffect(() => {
         if (page > 0) {
             fetchAds(page, false);
         }
     }, [page]);
+
+    // Intersection Observer for Sentinel
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+                setPage((prev) => prev + 1);
+            }
+        }, { threshold: 0.5 });
+
+        if (sentinelRef.current) {
+            observer.observe(sentinelRef.current);
+        }
+
+        return () => {
+            if (sentinelRef.current) {
+                observer.unobserve(sentinelRef.current);
+            }
+        };
+    }, [hasMore, loading, loadingMore]);
 
     const fetchAds = async (pageIndex, isNewSearch = false) => {
         if (isNewSearch) {
@@ -109,44 +118,24 @@ export default function HomePage({ onContactClick, searchTerm }) {
                     <div className="text-center py-10 text-gray-500">لا توجد إعلانات حتى الآن</div>
                 ) : (
                     <>
-                        {ads.map((item, index) => {
-                            if (ads.length === index + 1) {
-                                return (
-                                    <div ref={lastAdElementRef} key={item.id}>
-                                        <ListingCard
-                                            item={{
-                                                ...item,
-                                                location: item.city
-                                            }}
-                                            onContactClick={onContactClick}
-                                        />
-                                    </div>
-                                );
-                            } else {
-                                return (
-                                    <ListingCard
-                                        key={item.id}
-                                        item={{
-                                            ...item,
-                                            location: item.city
-                                        }}
-                                        onContactClick={onContactClick}
-                                    />
-                                );
-                            }
-                        })}
+                        {ads.map((item) => (
+                            <ListingCard
+                                key={item.id}
+                                item={{
+                                    ...item,
+                                    location: item.city
+                                }}
+                                onContactClick={onContactClick}
+                            />
+                        ))}
 
-                        {loadingMore && (
-                            <div className="flex justify-center items-center py-4">
-                                <Loader2 className="w-6 h-6 text-[#115ea3] animate-spin" />
-                            </div>
-                        )}
-
-                        {!hasMore && ads.length > 0 && (
-                            <div className="text-center py-6 text-gray-400 text-sm">
-                                لا توجد إعلانات أخرى
-                            </div>
-                        )}
+                        {/* Sentinel Div for Infinite Scroll */}
+                        <div id="load-more-trigger" ref={sentinelRef} className="h-10 w-full flex justify-center items-center mt-4">
+                            {loadingMore && <Loader2 className="w-6 h-6 text-[#115ea3] animate-spin" />}
+                            {!hasMore && ads.length > 0 && (
+                                <span className="text-gray-400 text-sm">نهاية النتائج</span>
+                            )}
+                        </div>
                     </>
                 )}
             </div>

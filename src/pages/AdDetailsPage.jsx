@@ -65,7 +65,7 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
                     url: window.location.href,
                 });
             } catch (error) {
-                console.log('Error sharing:', error);
+                // Silently fail or handle error gracefully
             }
         } else {
             alert('تم نسخ الرابط للحافظة');
@@ -90,7 +90,7 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
     if (!ad) return <div className="text-center py-20 text-gray-500">الإعلان غير موجود</div>;
 
     const hasMultipleImages = ad.images && ad.images.length > 0;
-    const imagesToDisplay = hasMultipleImages ? ad.images : [ad.image_url || "https://placehold.co/600x400/f1f5f9/475569?text=Delala"];
+    const imagesToDisplay = hasMultipleImages ? ad.images : ["https://placehold.co/600x400/f1f5f9/475569?text=Delala"];
 
     return (
         <div className="bg-white min-h-screen pb-32">

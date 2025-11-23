@@ -21,7 +21,7 @@ export default function Header({ user, onLoginClick, onPostAdClick, onSearch }) 
     };
 
     return (
-        <header className="sticky top-0 z-50 bg-white shadow-sm">
+        <header className="sticky top-0 z-50 bg-white shadow-sm pt-safe">
             {/* Top Bar - Brand & Actions */}
             <div className="bg-[#115ea3] text-white py-3">
                 <div className="container mx-auto px-4 flex items-center justify-between">

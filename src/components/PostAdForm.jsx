@@ -103,7 +103,7 @@ export default function PostAdForm() {
                                 file.name.replace(/\.(heic|heif)$/i, '.jpg'),
                                 { type: 'image/jpeg' }
                             );
-                            console.log(`Converted HEIC to JPEG: ${fileToProcess.name}`);
+                            // console.log(`Converted HEIC to JPEG: ${fileToProcess.name}`);
                         } catch (heicError) {
                             console.warn("HEIC conversion failed, attempting normal compression:", heicError);
                         }
@@ -121,7 +121,7 @@ export default function PostAdForm() {
                     try {
                         const compressedFile = await imageCompression(fileToProcess, options);
                         fileToUpload = compressedFile;
-                        console.log(`Processed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB (JPEG)`);
+                        // console.log(`Processed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB (JPEG)`);
                     } catch (compressionError) {
                         console.warn("Image compression failed, using original file:", compressionError);
                     }
@@ -155,7 +155,7 @@ export default function PostAdForm() {
         }
 
         setUploadProgress('جاري حفظ الإعلان...');
-        console.log('Final Images to Save:', savedUrls);
+        // console.log('Final Images to Save:', savedUrls);
 
         // 2. Database Insert
         try {
@@ -195,7 +195,7 @@ export default function PostAdForm() {
                 user_name: userName
             };
 
-            console.log("Sending payload to Supabase:", payload);
+            // console.log("Sending payload to Supabase:", payload);
 
             const { error } = await supabase
                 .from('ads')

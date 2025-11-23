@@ -52,7 +52,7 @@ export default function HomePage({ onContactClick, searchTerm }) {
         try {
             let query = supabase
                 .from('ads')
-                .select('*')
+                .select('*, images')
                 .order('created_at', { ascending: false })
                 .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE - 1);
 
@@ -116,8 +116,7 @@ export default function HomePage({ onContactClick, searchTerm }) {
                                         <ListingCard
                                             item={{
                                                 ...item,
-                                                location: item.city,
-                                                image: item.image_url
+                                                location: item.city
                                             }}
                                             onContactClick={onContactClick}
                                         />
@@ -129,8 +128,7 @@ export default function HomePage({ onContactClick, searchTerm }) {
                                         key={item.id}
                                         item={{
                                             ...item,
-                                            location: item.city,
-                                            image: item.image_url
+                                            location: item.city
                                         }}
                                         onContactClick={onContactClick}
                                     />

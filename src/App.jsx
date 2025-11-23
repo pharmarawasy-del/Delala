@@ -15,6 +15,8 @@ import Footer from './components/Footer';
 import TermsPage from './pages/TermsPage';
 import ContactPage from './pages/ContactPage';
 import InstallPrompt from './components/InstallPrompt';
+import AdminRoute from './components/AdminRoute';
+import Dashboard from './pages/admin/Dashboard';
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -130,45 +132,129 @@ function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-white font-sans pb-24" dir="rtl">
-        <Header
-          user={user}
-          onLoginClick={() => setIsLoginModalOpen(true)}
-          onPostAdClick={handlePostAdClick}
-          onSearch={setSearchTerm}
-        />
-        <SafetyBanner />
-
         <Routes>
           <Route
             path="/"
-            element={<HomePage
-              onContactClick={() => setIsLoginModalOpen(true)}
-              searchTerm={searchTerm}
-            />}
+            element={
+              <>
+                <Header
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                  onPostAdClick={handlePostAdClick}
+                  onSearch={setSearchTerm}
+                />
+                <SafetyBanner />
+                <HomePage
+                  onContactClick={() => setIsLoginModalOpen(true)}
+                  searchTerm={searchTerm}
+                />
+                <Footer />
+              </>
+            }
           />
           <Route
             path="/post-ad"
-            element={user ? <PostAdPage /> : <Navigate to="/" replace />}
+            element={
+              <>
+                <Header
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                  onPostAdClick={handlePostAdClick}
+                  onSearch={setSearchTerm}
+                />
+                {user ? <PostAdPage /> : <Navigate to="/" replace />}
+                <Footer />
+              </>
+            }
           />
           <Route
             path="/ad/:id"
             element={
-              <AdDetailsPage
-                isLoggedIn={!!user}
-                onLoginClick={() => setIsLoginModalOpen(true)}
-              />
+              <>
+                <Header
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                  onPostAdClick={handlePostAdClick}
+                  onSearch={setSearchTerm}
+                />
+                <AdDetailsPage
+                  isLoggedIn={!!user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                />
+                <Footer />
+              </>
             }
           />
           <Route
             path="/profile"
-            element={user ? <ProfilePage /> : <Navigate to="/" replace />}
+            element={
+              <>
+                <Header
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                  onPostAdClick={handlePostAdClick}
+                  onSearch={setSearchTerm}
+                />
+                {user ? <ProfilePage /> : <Navigate to="/" replace />}
+                <Footer />
+              </>
+            }
           />
           <Route
             path="/my-ads"
-            element={user ? <MyAds /> : <Navigate to="/" replace />}
+            element={
+              <>
+                <Header
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                  onPostAdClick={handlePostAdClick}
+                  onSearch={setSearchTerm}
+                />
+                {user ? <MyAds /> : <Navigate to="/" replace />}
+                <Footer />
+              </>
+            }
           />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/contact" element={<ContactPage />} />
+          <Route
+            path="/terms"
+            element={
+              <>
+                <Header
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                  onPostAdClick={handlePostAdClick}
+                  onSearch={setSearchTerm}
+                />
+                <TermsPage />
+                <Footer />
+              </>
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              <>
+                <Header
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                  onPostAdClick={handlePostAdClick}
+                  onSearch={setSearchTerm}
+                />
+                <ContactPage />
+                <Footer />
+              </>
+            }
+          />
+
+          {/* Admin Route */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute user={user}>
+                <Dashboard />
+              </AdminRoute>
+            }
+          />
         </Routes>
 
         <LoginModal
@@ -187,7 +273,6 @@ function App() {
           onComplete={handleProfileSetupComplete}
         />
 
-        <Footer />
         <InstallPrompt />
       </div>
     </BrowserRouter>

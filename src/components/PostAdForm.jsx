@@ -71,229 +71,309 @@ export default function PostAdForm() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const { error } = await supabase
-            .from('ads')
-            .insert([payload]);
+        setStep(3);
+    };
 
-        if (error) throw error;
+    const handlePublish = async () => {
+        setIsSubmitting(true);
+        setUploadProgress('جاري التحضير...');
+        const validImageUrls = [];
 
-        alert('تم نشر الإعلان بنجاح!');
-        navigate('/');
-    } catch (error) {
-        console.error('FATAL: Database Insert Failed:', error);
-        alert(`حدث خطأ أثناء النشر: ${error.message || 'خطأ غير معروف'}`);
-    } finally {
-        setIsSubmitting(false);
-        setUploadProgress('');
-    }
-};
+        // 1. Upload Images Sequentially (Reliability > Speed)
+        if (imageFiles.length > 0) {
+            let count = 0;
+            for (const file of imageFiles) {
+                count++;
+                setUploadProgress(`جاري رفع الصورة ${count} من ${imageFiles.length}...`);
 
-return (
-    <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8 relative">
-            <div className="absolute left-0 right-0 top-1/2 h-1 bg-gray-100 -z-10"></div>
-            {[1, 2, 3].map((s) => (
-                <div
-                    key={s}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${step >= s ? 'bg-[#009688] text-white' : 'bg-gray-200 text-gray-500'
-                        }`}
-                >
-                    {s}
-                </div>
-            ))}
-        </div>
+                try {
+                    // Compress Image
+                    const options = {
+                        maxSizeMB: 1,
+                        maxWidthOrHeight: 1920,
+                        useWebWorker: true
+                    };
 
-        {step === 1 && (
-            <div>
-                <h3 className="text-xl font-bold mb-6 text-center">اختر القسم</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    {CATEGORIES.map((cat) => (
-                        <button
-                            key={cat.id}
-                            onClick={() => handleCategorySelect(cat.id)}
-                            className="flex flex-col items-center justify-center p-6 border-2 border-gray-100 rounded-xl hover:border-[#009688] hover:bg-teal-50 transition-all gap-3"
-                        >
-                            <cat.icon className="w-8 h-8 text-[#009688]" />
-                            <span className="font-bold text-gray-700">{cat.name}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        )}
+                    let fileToUpload = file;
+                    try {
+                        fileToUpload = await imageCompression(file, options);
+                        console.log(`Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB`);
+                    } catch (compressionError) {
+                        console.warn("Image compression failed, using original file:", compressionError);
+                    }
 
-        {step === 2 && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <h3 className="text-xl font-bold mb-6 text-center">تفاصيل الإعلان</h3>
+                    // STRICT SANITIZATION: Generate a completely new filename
+                    // Do NOT use file.name to avoid Arabic character issues
+                    const fileExt = file.name.split('.').pop() || 'jpg';
+                    const fileName = `${Date.now()}-${Math.floor(Math.random() * 10000)}.${fileExt}`;
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">عنوان الإعلان</label>
-                    <input
-                        type="text"
-                        name="title"
-                        value={formData.title}
-                        onChange={handleChange}
-                        required
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
-                        placeholder="مثال: تويوتا هايلكس 2020"
-                    />
-                </div>
+                    const { error: uploadError } = await supabase.storage
+                        .from('images')
+                        .upload(fileName, fileToUpload);
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">السعر (جنية سوداني)</label>
-                    <input
-                        type="number"
-                        name="price"
-                        value={formData.price}
-                        onChange={handleChange}
-                        required
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
-                        placeholder="0"
-                    />
-                </div>
+                    if (uploadError) throw uploadError;
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">الموقع</label>
-                    <select
-                        name="location"
-                        value={formData.location}
-                        onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
+                    const { data: publicUrlData } = supabase.storage
+                        .from('images')
+                        .getPublicUrl(fileName);
+
+                    if (publicUrlData?.publicUrl) {
+                        validImageUrls.push(publicUrlData.publicUrl);
+                    }
+
+                } catch (err) {
+                    console.error(`Error uploading image ${count}:`, err);
+                    // Continue to next image even if one fails
+                }
+            }
+        }
+
+        setUploadProgress('جاري حفظ الإعلان...');
+        console.log('Final Images to Save:', validImageUrls);
+
+        // If no images uploaded (or all failed), use placeholder
+        if (validImageUrls.length === 0) {
+            validImageUrls.push('https://placehold.co/600x400?text=No+Image');
+        }
+
+        // 2. Database Insert
+        try {
+            const payload = {
+                title: formData.title,
+                price: formData.price,
+                city: formData.location,
+                category: formData.category,
+                phone: formData.phone,
+                description: formData.description,
+                images: validImageUrls, // Send array of strings
+                user_id: (await supabase.auth.getUser()).data.user?.id
+            };
+
+            console.log("Sending payload to Supabase:", payload);
+
+            const { error } = await supabase
+                .from('ads')
+                .insert([payload]);
+
+            if (error) throw error;
+
+            alert('تم نشر الإعلان بنجاح!');
+            navigate('/');
+        } catch (error) {
+            console.error('FATAL: Database Insert Failed:', error);
+            alert(`حدث خطأ أثناء النشر: ${error.message || 'خطأ غير معروف'}`);
+        } finally {
+            setIsSubmitting(false);
+            setUploadProgress('');
+        }
+    };
+
+    return (
+        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            {/* Progress Steps */}
+            <div className="flex items-center justify-between mb-8 relative">
+                <div className="absolute left-0 right-0 top-1/2 h-1 bg-gray-100 -z-10"></div>
+                {[1, 2, 3].map((s) => (
+                    <div
+                        key={s}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${step >= s ? 'bg-[#009688] text-white' : 'bg-gray-200 text-gray-500'
+                            }`}
                     >
-                        <option value="الخرطوم">الخرطوم</option>
-                        <option value="أم درمان">أم درمان</option>
-                        <option value="بحري">بحري</option>
-                        <option value="بورتسودان">بورتسودان</option>
-                        <option value="عطبرة">عطبرة</option>
-                        <option value="شندي">شندي</option>
-                        <option value="دنقلا">دنقلا</option>
-                        <option value="مدني">مدني</option>
-                        <option value="القضارف">القضارف</option>
-                        <option value="كسلا">كسلا</option>
-                        <option value="الأبيض">الأبيض</option>
-                        <option value="الفاشر">الفاشر</option>
-                        <option value="نيالا">نيالا</option>
-                    </select>
-                </div>
+                        {s}
+                    </div>
+                ))}
+            </div>
 
+            {step === 1 && (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف للتواصل</label>
-                    <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        required
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none text-left"
-                        placeholder="0xxxxxxxxx"
-                        dir="ltr"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
-                    <textarea
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                        rows="4"
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
-                        placeholder="اكتب وصفاً تفصيلياً..."
-                    ></textarea>
-                </div>
-
-                {/* Multi-Image Upload Section */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">صور الإعلان (يمكنك اختيار أكثر من صورة)</label>
-
-                    <div className="grid grid-cols-3 gap-2 mb-2">
-                        {imagePreviews.map((preview, index) => (
-                            <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
-                                <img src={preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                                <button
-                                    type="button"
-                                    onClick={() => removeImage(index)}
-                                    className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full hover:bg-red-600"
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
-                            </div>
+                    <h3 className="text-xl font-bold mb-6 text-center">اختر القسم</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        {CATEGORIES.map((cat) => (
+                            <button
+                                key={cat.id}
+                                onClick={() => handleCategorySelect(cat.id)}
+                                className="flex flex-col items-center justify-center p-6 border-2 border-gray-100 rounded-xl hover:border-[#009688] hover:bg-teal-50 transition-all gap-3"
+                            >
+                                <cat.icon className="w-8 h-8 text-[#009688]" />
+                                <span className="font-bold text-gray-700">{cat.name}</span>
+                            </button>
                         ))}
+                    </div>
+                </div>
+            )}
 
-                        {imagePreviews.length < 10 && (
-                            <div className="relative aspect-square border-2 border-dashed border-gray-300 rounded-lg hover:border-[#009688] transition-colors flex flex-col items-center justify-center text-gray-400 hover:text-[#009688]">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageChange}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                />
-                                <Plus className="w-6 h-6 mb-1" />
-                                <span className="text-xs">إضافة</span>
+            {step === 2 && (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <h3 className="text-xl font-bold mb-6 text-center">تفاصيل الإعلان</h3>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">عنوان الإعلان</label>
+                        <input
+                            type="text"
+                            name="title"
+                            value={formData.title}
+                            onChange={handleChange}
+                            required
+                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
+                            placeholder="مثال: تويوتا هايلكس 2020"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">السعر (جنية سوداني)</label>
+                        <input
+                            type="number"
+                            name="price"
+                            value={formData.price}
+                            onChange={handleChange}
+                            required
+                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
+                            placeholder="0"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">الموقع</label>
+                        <select
+                            name="location"
+                            value={formData.location}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
+                        >
+                            <option value="الخرطوم">الخرطوم</option>
+                            <option value="أم درمان">أم درمان</option>
+                            <option value="بحري">بحري</option>
+                            <option value="بورتسودان">بورتسودان</option>
+                            <option value="عطبرة">عطبرة</option>
+                            <option value="شندي">شندي</option>
+                            <option value="دنقلا">دنقلا</option>
+                            <option value="مدني">مدني</option>
+                            <option value="القضارف">القضارف</option>
+                            <option value="كسلا">كسلا</option>
+                            <option value="الأبيض">الأبيض</option>
+                            <option value="الفاشر">الفاشر</option>
+                            <option value="نيالا">نيالا</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف للتواصل</label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            required
+                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none text-left"
+                            placeholder="0xxxxxxxxx"
+                            dir="ltr"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
+                        <textarea
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            rows="4"
+                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#009688] outline-none"
+                            placeholder="اكتب وصفاً تفصيلياً..."
+                        ></textarea>
+                    </div>
+
+                    {/* Multi-Image Upload Section */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">صور الإعلان (يمكنك اختيار أكثر من صورة)</label>
+
+                        <div className="grid grid-cols-3 gap-2 mb-2">
+                            {imagePreviews.map((preview, index) => (
+                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                                    <img src={preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(index)}
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full hover:bg-red-600"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {imagePreviews.length < 10 && (
+                                <div className="relative aspect-square border-2 border-dashed border-gray-300 rounded-lg hover:border-[#009688] transition-colors flex flex-col items-center justify-center text-gray-400 hover:text-[#009688]">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleImageChange}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <Plus className="w-6 h-6 mb-1" />
+                                    <span className="text-xs">إضافة</span>
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-400 text-left">{imagePreviews.length}/10 صور</p>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className="flex-1 py-3 rounded-xl font-bold border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                            رجوع
+                        </button>
+                        <button
+                            type="submit"
+                            className="flex-1 bg-[#009688] text-white py-3 rounded-xl font-bold hover:bg-teal-700"
+                        >
+                            التالي
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            {step === 3 && (
+                <div className="text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Check className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">مراجعة الإعلان</h3>
+                    <p className="text-gray-500 mb-8">هل أنت متأكد من نشر هذا الإعلان؟</p>
+
+                    <div className="bg-gray-50 rounded-xl p-4 text-right mb-8">
+                        {imagePreviews.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
+                                {imagePreviews.map((preview, index) => (
+                                    <img key={index} src={preview} alt="Preview" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+                                ))}
                             </div>
                         )}
+                        <p className="font-bold text-lg mb-1">{formData.title}</p>
+                        <p className="text-[#F59E0B] font-bold mb-2">{Number(formData.price).toLocaleString()} SDG</p>
+                        <p className="text-gray-600 text-sm">{formData.location}</p>
                     </div>
-                    <p className="text-xs text-gray-400 text-left">{imagePreviews.length}/10 صور</p>
-                </div>
 
-                <div className="flex gap-3 pt-4">
-                    <button
-                        type="button"
-                        onClick={() => setStep(1)}
-                        className="flex-1 py-3 rounded-xl font-bold border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                        رجوع
-                    </button>
-                    <button
-                        type="submit"
-                        className="flex-1 bg-[#009688] text-white py-3 rounded-xl font-bold hover:bg-teal-700"
-                    >
-                        التالي
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setStep(2)}
+                            className="flex-1 py-3 rounded-xl font-bold border border-gray-300 text-gray-700 hover:bg-gray-50"
+                            disabled={isSubmitting}
+                        >
+                            تعديل
+                        </button>
+                        <button
+                            onClick={handlePublish}
+                            className="flex-1 bg-[#009688] text-white py-3 rounded-xl font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (uploadProgress || 'جاري النشر...') : 'نشر الآن'}
+                        </button>
+                    </div>
                 </div>
-            </form>
-        )}
-
-        {step === 3 && (
-            <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Check className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">مراجعة الإعلان</h3>
-                <p className="text-gray-500 mb-8">هل أنت متأكد من نشر هذا الإعلان؟</p>
-
-                <div className="bg-gray-50 rounded-xl p-4 text-right mb-8">
-                    {imagePreviews.length > 0 && (
-                        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
-                            {imagePreviews.map((preview, index) => (
-                                <img key={index} src={preview} alt="Preview" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
-                            ))}
-                        </div>
-                    )}
-                    <p className="font-bold text-lg mb-1">{formData.title}</p>
-                    <p className="text-[#F59E0B] font-bold mb-2">{Number(formData.price).toLocaleString()} SDG</p>
-                    <p className="text-gray-600 text-sm">{formData.location}</p>
-                </div>
-
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setStep(2)}
-                        className="flex-1 py-3 rounded-xl font-bold border border-gray-300 text-gray-700 hover:bg-gray-50"
-                        disabled={isSubmitting}
-                    >
-                        تعديل
-                    </button>
-                    <button
-                        onClick={handlePublish}
-                        className="flex-1 bg-[#009688] text-white py-3 rounded-xl font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? (uploadProgress || 'جاري النشر...') : 'نشر الآن'}
-                    </button>
-                </div>
-            </div>
-        )}
-    </div>
-);
+            )}
+        </div>
+    );
 }

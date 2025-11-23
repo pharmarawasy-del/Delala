@@ -6,7 +6,7 @@ export default function ListingCard({ item, onContactClick }) {
     // Defensive coding: Ensure images array exists and has items
     const thumbnail = (Array.isArray(item.images) && item.images.length > 0)
         ? item.images[0]
-        : "https://placehold.co/400x300?text=No+Image";
+        : "https://placehold.co/600x400/f1f5f9/475569?text=Delala";
 
     return (
         <div className="bg-white border-b border-gray-200 py-3 px-2 hover:bg-gray-50 transition-colors">

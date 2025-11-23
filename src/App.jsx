@@ -114,16 +114,18 @@ function App() {
     }
   };
 
+  import { Loader2 } from 'lucide-react';
+
+  // ... existing imports ...
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center gap-6">
-          <span className="text-8xl font-black text-[#115ea3] tracking-tighter" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+        <div className="flex flex-col items-center gap-6">
+          <span className="text-7xl font-black text-[#115ea3] tracking-tighter" style={{ fontFamily: "'Tajawal', sans-serif" }}>
             دلالة
           </span>
-          <div className="h-1.5 w-48 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-[#115ea3] w-1/3 animate-[shimmer_1s_infinite_linear]"></div>
-          </div>
+          <Loader2 className="w-8 h-8 text-[#115ea3] animate-spin" />
         </div>
       </div>
     );

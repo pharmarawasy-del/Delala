@@ -4,13 +4,14 @@ import { supabase } from '../supabase';
 
 export default function LoginModal({ isOpen, onClose }) {
     const [email, setEmail] = useState('');
-    const [linkSent, setLinkSent] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     if (!isOpen) return null;
 
-    const handleLogin = async (e) => {
+    const handleSendOtp = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
@@ -19,11 +20,34 @@ export default function LoginModal({ isOpen, onClose }) {
             const { error } = await supabase.auth.signInWithOtp({
                 email: email,
                 options: {
-                    emailRedirectTo: window.location.origin,
+                    shouldCreateUser: true,
                 },
             });
             if (error) throw error;
-            setLinkSent(true);
+            setOtpSent(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        try {
+            const { error } = await supabase.auth.verifyOtp({
+                email,
+                token: otp,
+                type: 'email',
+            });
+            if (error) throw error;
+
+            // Successful login
+            onClose();
+            // Optional: You might want to trigger a refresh or state update here if not handled globally
         } catch (err) {
             setError(err.message);
         } finally {
@@ -33,7 +57,8 @@ export default function LoginModal({ isOpen, onClose }) {
 
     const resetState = () => {
         setEmail('');
-        setLinkSent(false);
+        setOtp('');
+        setOtpSent(false);
         setError(null);
         onClose();
     };
@@ -49,19 +74,19 @@ export default function LoginModal({ isOpen, onClose }) {
                 </button>
 
                 <div className="text-center pt-4">
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${linkSent ? 'bg-green-50' : 'bg-blue-50'}`}>
-                        {linkSent ? (
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${otpSent ? 'bg-green-50' : 'bg-blue-50'}`}>
+                        {otpSent ? (
                             <CheckCircle2 className="w-8 h-8 text-green-600" />
                         ) : (
                             <LogIn className="w-8 h-8 text-[#115ea3]" />
                         )}
                     </div>
                     <h3 className="text-xl font-bold mb-2 text-gray-900">
-                        {linkSent ? 'تم إرسال الرابط' : 'تسجيل الدخول'}
+                        {otpSent ? 'أدخل رمز التحقق' : 'تسجيل الدخول'}
                     </h3>
                     <p className="text-gray-500 mb-6 text-sm">
-                        {linkSent
-                            ? 'تم إرسال رابط الدخول إلى بريدك الإلكتروني. يمكنك إغلاق هذه النافذة والمتابعة من هناك.'
+                        {otpSent
+                            ? `تم إرسال رمز التحقق إلى ${email}`
                             : 'أدخل بريدك الإلكتروني لتسجيل الدخول'}
                     </p>
 
@@ -71,8 +96,8 @@ export default function LoginModal({ isOpen, onClose }) {
                         </div>
                     )}
 
-                    {!linkSent ? (
-                        <form onSubmit={handleLogin}>
+                    {!otpSent ? (
+                        <form onSubmit={handleSendOtp}>
                             <div className="space-y-4 mb-6">
                                 <div className="relative">
                                     <input
@@ -93,18 +118,42 @@ export default function LoginModal({ isOpen, onClose }) {
                                 className="w-full bg-[#115ea3] text-white py-3 rounded-xl font-bold mb-4 hover:bg-[#0d4b82] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                <span>{loading ? 'جاري الإرسال...' : 'أرسل رابط الدخول'}</span>
+                                <span>{loading ? 'جاري الإرسال...' : 'أرسل رمز التحقق'}</span>
                             </button>
                         </form>
                     ) : (
-                        <div className="space-y-4">
+                        <form onSubmit={handleVerifyOtp}>
+                            <div className="space-y-4 mb-6">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                        placeholder="رمز التحقق (4 أرقام)"
+                                        className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#115ea3] focus:border-transparent outline-none transition-all text-center tracking-widest text-lg"
+                                        required
+                                        maxLength={4}
+                                    />
+                                </div>
+                            </div>
+
                             <button
-                                onClick={() => setLinkSent(false)}
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-[#115ea3] text-white py-3 rounded-xl font-bold mb-4 hover:bg-[#0d4b82] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                <span>{loading ? 'جاري التحقق...' : 'تحقق ودخول'}</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setOtpSent(false)}
                                 className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
                             >
-                                أعد إرسال الرابط
+                                تغيير البريد الإلكتروني
                             </button>
-                        </div>
+                        </form>
                     )}
                 </div>
             </div>

@@ -84,16 +84,55 @@ export default function PostAdForm() {
             let count = 0;
             for (const file of imageFiles) {
                 count++;
-                setUploadProgress(`جاري رفع الصورة ${count} من ${imageFiles.length}...`);
+                setUploadProgress(`جاري معالجة ورفع الصورة ${count} من ${imageFiles.length}...`);
 
                 try {
+                    let fileToProcess = file;
+
+                    // A. Handle HEIC files if present
+                    if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+                        try {
+                            const heic2any = (await import('heic2any')).default;
+                            const convertedBlob = await heic2any({
+                                blob: file,
+                                toType: 'image/jpeg',
+                                quality: 0.8
+                            });
+                            fileToProcess = new File(
+                                [Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob],
+                                file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+                                { type: 'image/jpeg' }
+                            );
+                            console.log(`Converted HEIC to JPEG: ${fileToProcess.name}`);
+                        } catch (heicError) {
+                            console.warn("HEIC conversion failed, attempting normal compression:", heicError);
+                        }
+                    }
+
+                    // B. Universal Compression & JPEG Conversion
+                    const options = {
+                        maxSizeMB: 0.8,          // Compress to ~800KB
+                        maxWidthOrHeight: 1920,  // HD Resolution limit
+                        useWebWorker: true,
+                        fileType: "image/jpeg"   // FORCE conversion to JPEG
+                    };
+
+                    let fileToUpload = fileToProcess;
+                    try {
+                        const compressedFile = await imageCompression(fileToProcess, options);
+                        fileToUpload = compressedFile;
+                        console.log(`Processed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB (JPEG)`);
+                    } catch (compressionError) {
+                        console.warn("Image compression failed, using original file:", compressionError);
+                    }
+
                     // Sanitize Name (User Directive)
-                    // Using a simple, safe filename structure
+                    // Ensure extension is .jpg
                     const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
 
                     const { error: uploadError } = await supabase.storage
                         .from('images')
-                        .upload(fileName, file);
+                        .upload(fileName, fileToUpload);
 
                     if (uploadError) {
                         console.error(`Upload failed for image ${count}:`, uploadError);

@@ -35,33 +35,32 @@ function App() {
       setIsProfileSetupOpen(true);
     };
 
-    // Check active session and set up listener
-    const initializeAuth = async () => {
-      // Safety timeout to ensure we don't get stuck on loading
-      const timeoutId = setTimeout(() => {
-        setLoading(false);
-      }, 3000);
+    let mounted = true;
 
+    async function initializeAuth() {
       try {
+        // 1. Check active session immediately
         const { data: { session } } = await supabase.auth.getSession();
+
         if (session?.user) {
+          // If we have a session, fetch the full profile
           await fetchProfile(session.user);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
       } finally {
-        clearTimeout(timeoutId);
-        setLoading(false);
+        // 2. ONLY set loading to false after the initial check is done
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    };
+    }
 
     initializeAuth();
 
-    // Listen for auth changes
+    // 3. Set up listener for future changes (sign in, sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        // We might want to avoid re-fetching if we already have the user, 
-        // but for now, ensuring we have the profile is safer.
         await fetchProfile(session.user);
       } else {
         setUser(null);
@@ -69,6 +68,7 @@ function App() {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       delete window.triggerProfileSetup;
     };

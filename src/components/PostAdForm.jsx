@@ -26,6 +26,8 @@ export default function PostAdForm() {
         description: '',
     });
 
+    const [uploadProgress, setUploadProgress] = useState('');
+
     const handleCategorySelect = (categoryId) => {
         setFormData({ ...formData, category: categoryId });
         setStep(2);
@@ -40,6 +42,11 @@ export default function PostAdForm() {
         if (files.length > 0) {
             // Limit to 10 images total
             const remainingSlots = 10 - imageFiles.length;
+
+            if (files.length > remainingSlots) {
+                alert('تم اختيار أول 10 صور فقط. الحد الأقصى هو 10 صور.');
+            }
+
             const filesToAdd = files.slice(0, remainingSlots);
 
             if (filesToAdd.length > 0) {
@@ -69,12 +76,17 @@ export default function PostAdForm() {
 
     const handlePublish = async () => {
         setIsSubmitting(true);
+        setUploadProgress('جاري التحضير...');
         const uploadedUrls = [];
 
-        // 1. Upload Images in Parallel with Compression
+        // 1. Upload Images Sequentially (Reliability > Speed)
         if (imageFiles.length > 0) {
-            try {
-                const uploadPromises = imageFiles.map(async (file) => {
+            let count = 0;
+            for (const file of imageFiles) {
+                count++;
+                setUploadProgress(`جاري رفع الصورة ${count} من ${imageFiles.length}...`);
+
+                try {
                     // Compress Image
                     const options = {
                         maxSizeMB: 1,
@@ -103,18 +115,18 @@ export default function PostAdForm() {
                         .from('images')
                         .getPublicUrl(fileName);
 
-                    return publicUrlData.publicUrl;
-                });
+                    uploadedUrls.push(publicUrlData.publicUrl);
 
-                const results = await Promise.all(uploadPromises);
-                uploadedUrls.push(...results);
-
-            } catch (err) {
-                console.error("Error during image upload:", err);
+                } catch (err) {
+                    console.error(`Error uploading image ${file.name}:`, err);
+                    // Continue to next image even if one fails
+                }
             }
         }
 
-        // If no images uploaded, use placeholder
+        setUploadProgress('جاري حفظ الإعلان...');
+
+        // If no images uploaded (or all failed), use placeholder
         if (uploadedUrls.length === 0) {
             uploadedUrls.push('https://placehold.co/600x400?text=No+Image');
         }
@@ -147,6 +159,7 @@ export default function PostAdForm() {
             alert(`حدث خطأ أثناء النشر: ${error.message || 'خطأ غير معروف'}`);
         } finally {
             setIsSubmitting(false);
+            setUploadProgress('');
         }
     };
 
@@ -351,7 +364,7 @@ export default function PostAdForm() {
                             className="flex-1 bg-[#009688] text-white py-3 rounded-xl font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'جاري رفع الصور...' : 'نشر الآن'}
+                            {isSubmitting ? (uploadProgress || 'جاري النشر...') : 'نشر الآن'}
                         </button>
                     </div>
                 </div>

@@ -9,10 +9,23 @@ export default function LoginModal({ isOpen, onClose }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    const [timer, setTimer] = useState(60);
+
+    // Timer countdown effect
+    React.useEffect(() => {
+        let interval;
+        if (otpSent && timer > 0) {
+            interval = setInterval(() => {
+                setTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [otpSent, timer]);
+
     if (!isOpen) return null;
 
     const handleSendOtp = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setLoading(true);
         setError(null);
 
@@ -25,6 +38,7 @@ export default function LoginModal({ isOpen, onClose }) {
             });
             if (error) throw error;
             setOtpSent(true);
+            setTimer(60); // Reset timer on successful send
         } catch (err) {
             setError(err.message);
         } finally {
@@ -47,7 +61,6 @@ export default function LoginModal({ isOpen, onClose }) {
 
             // Successful login
             onClose();
-            // Optional: You might want to trigger a refresh or state update here if not handled globally
         } catch (err) {
             setError(err.message);
         } finally {
@@ -55,11 +68,16 @@ export default function LoginModal({ isOpen, onClose }) {
         }
     };
 
+    const handleResendOtp = () => {
+        handleSendOtp();
+    };
+
     const resetState = () => {
         setEmail('');
         setOtp('');
         setOtpSent(false);
         setError(null);
+        setTimer(60);
         onClose();
     };
 
@@ -145,13 +163,23 @@ export default function LoginModal({ isOpen, onClose }) {
                                 <span>{loading ? 'جاري التحقق...' : 'تحقق ودخول'}</span>
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={() => setOtpSent(false)}
-                                className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
-                            >
-                                تغيير البريد الإلكتروني
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleResendOtp}
+                                    disabled={timer > 0 || loading}
+                                    className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    {timer > 0 ? `إعادة الإرسال (${timer})` : 'أعد إرسال الرمز'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setOtpSent(false)}
+                                    className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm"
+                                >
+                                    تغيير البريد
+                                </button>
+                            </div>
                         </form>
                     )}
                 </div>

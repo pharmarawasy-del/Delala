@@ -129,10 +129,9 @@ export default function LoginModal({ isOpen, onClose }) {
                                         type="text"
                                         value={otp}
                                         onChange={(e) => setOtp(e.target.value)}
-                                        placeholder="رمز التحقق (4 أرقام)"
+                                        placeholder="أدخل رمز التحقق"
                                         className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#115ea3] focus:border-transparent outline-none transition-all text-center tracking-widest text-lg"
                                         required
-                                        maxLength={4}
                                     />
                                 </div>
                             </div>

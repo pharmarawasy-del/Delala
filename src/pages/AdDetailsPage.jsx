@@ -13,22 +13,33 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
     const [commentText, setCommentText] = useState('');
     const imageContainerRef = useRef(null);
 
+    const [error, setError] = useState(null);
+
     useEffect(() => {
         fetchAdDetails();
     }, [id]);
 
     const fetchAdDetails = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            const { data, error } = await supabase
-                .from('ads')
-                .select('*')
-                .eq('id', id)
-                .single();
+            // 5-second timeout race
+            const { data, error: fetchError } = await Promise.race([
+                supabase
+                    .from('ads')
+                    .select('*')
+                    .eq('id', id)
+                    .single(),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('تأخر الاتصال. يرجى المحاولة مرة أخرى.')), 5000)
+                )
+            ]);
 
-            if (error) throw error;
+            if (fetchError) throw fetchError;
             setAd(data);
-        } catch (error) {
-            console.error('Error fetching ad details:', error);
+        } catch (err) {
+            console.error('Error fetching ad details:', err);
+            setError(err.message || 'حدث خطأ أثناء تحميل الإعلان');
         } finally {
             setLoading(false);
         }
@@ -86,8 +97,44 @@ export default function AdDetailsPage({ isLoggedIn, onLoginClick }) {
         // TODO: Implement DB persistence
     };
 
-    if (loading) return <div className="text-center py-20 text-gray-500">جاري التحميل...</div>;
-    if (!ad) return <div className="text-center py-20 text-gray-500">الإعلان غير موجود</div>;
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-4 border-[#115ea3] border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-500 text-sm">جاري تحميل التفاصيل...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !ad) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-white p-4">
+                <div className="text-center max-w-md">
+                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Flag className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">عذراً، حدث خطأ</h3>
+                    <p className="text-gray-500 mb-6">{error || 'لم نتمكن من العثور على هذا الإعلان'}</p>
+                    <div className="flex gap-3 justify-center">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded-full font-bold hover:bg-gray-200 transition-colors"
+                        >
+                            الرئيسية
+                        </button>
+                        <button
+                            onClick={fetchAdDetails}
+                            className="px-6 py-2 bg-[#115ea3] text-white rounded-full font-bold hover:bg-blue-700 transition-colors"
+                        >
+                            إعادة المحاولة
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const hasMultipleImages = ad.images && ad.images.length > 0;
     const imagesToDisplay = hasMultipleImages ? ad.images : ["https://placehold.co/600x400/f1f5f9/475569?text=Delala"];

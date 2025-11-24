@@ -30,17 +30,24 @@ export default function LoginModal({ isOpen, onClose }) {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithOtp({
-                email: email,
-                options: {
-                    shouldCreateUser: true,
-                },
-            });
+            // 5-second timeout race
+            const { error } = await Promise.race([
+                supabase.auth.signInWithOtp({
+                    email: email,
+                    options: {
+                        shouldCreateUser: true,
+                    },
+                }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('استغرق الطلب وقتاً طويلاً. يرجى المحاولة مرة أخرى.')), 5000)
+                )
+            ]);
+
             if (error) throw error;
             setOtpSent(true);
             setTimer(60); // Reset timer on successful send
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'حدث خطأ غير متوقع');
         } finally {
             setLoading(false);
         }
@@ -52,17 +59,24 @@ export default function LoginModal({ isOpen, onClose }) {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.verifyOtp({
-                email,
-                token: otp,
-                type: 'email',
-            });
+            // 5-second timeout race
+            const { error } = await Promise.race([
+                supabase.auth.verifyOtp({
+                    email,
+                    token: otp,
+                    type: 'email',
+                }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('فشل التحقق من الرمز. يرجى المحاولة مرة أخرى.')), 5000)
+                )
+            ]);
+
             if (error) throw error;
 
             // CRITICAL: Force reload to ensure fresh auth state and routing
             window.location.href = '/';
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
             setLoading(false); // Only stop loading on error
         }
         // Note: We intentionally don't set loading(false) on success because the page is reloading

@@ -39,7 +39,7 @@ export default function LoginModal({ isOpen, onClose }) {
                     },
                 }),
                 new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('استغرق الطلب وقتاً طويلاً. يرجى المحاولة مرة أخرى.')), 5000)
+                    setTimeout(() => reject(new Error('استغرق الطلب وقتاً طويلاً. يرجى المحاولة مرة أخرى.')), 15000)
                 )
             ]);
 
@@ -58,28 +58,57 @@ export default function LoginModal({ isOpen, onClose }) {
         setLoading(true);
         setError(null);
 
+        // Sanitize email: trim spaces and convert to lowercase to match Supabase storage
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanOtp = otp.trim();
+
         try {
-            // 5-second timeout race
-            const { error } = await Promise.race([
-                supabase.auth.verifyOtp({
-                    email,
-                    token: otp,
-                    type: 'email',
-                }),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('فشل التحقق من الرمز. يرجى المحاولة مرة أخرى.')), 5000)
-                )
+            // 30-second timeout race
+            const verifyPromise = async (type) => {
+                return supabase.auth.verifyOtp({
+                    email: cleanEmail,
+                    token: cleanOtp,
+                    type: type,
+                });
+            };
+
+            // Try 'email' type first (standard for magic link / OTP)
+            let { data, error } = await Promise.race([
+                verifyPromise('email'),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
             ]);
+
+            // If 'email' type fails, try 'signup' (sometimes needed for new users)
+            if (error) {
+                console.warn("Standard verification failed, trying 'signup' type...");
+                const { data: signupData, error: signupError } = await verifyPromise('signup');
+
+                if (!signupError) {
+                    error = null; // Recovery successful
+                } else {
+                    // If both fail, throw the original error or the signup error
+                    console.error("Signup verification also failed:", signupError);
+                }
+            }
 
             if (error) throw error;
 
             // CRITICAL: Force reload to ensure fresh auth state and routing
             window.location.href = '/';
         } catch (err) {
-            setError(err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
-            setLoading(false); // Only stop loading on error
+            console.error("OTP Verification Error:", err);
+            let message = err.message;
+
+            // Helpful error messages for common Supabase issues
+            if (message.includes("Token has expired") || message.includes("invalid")) {
+                message = "الرمز غير صحيح أو انتهت صلاحيته. (ملاحظة: إذا ضغطت على الرابط في الإيميل، فإن الرمز يصبح غير صالح. استخدم الرمز فقط دون ضغط الرابط).";
+            } else if (message.includes("rate limit")) {
+                message = "تم تجاوز عدد المحاولات المسموح به. يرجى الانتظار قليلاً.";
+            }
+
+            setError(message);
+            setLoading(false);
         }
-        // Note: We intentionally don't set loading(false) on success because the page is reloading
     };
 
     const handleResendOtp = () => {

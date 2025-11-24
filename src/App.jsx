@@ -42,13 +42,14 @@ function App() {
 
     let mounted = true;
 
-    // FAIL-SAFE: Force app to load after 3 seconds even if Auth hangs
-    const authTimeout = setTimeout(() => {
-      if (mounted) {
-        console.warn('Auth check timed out, forcing app load...');
+    // 3. Failsafe timeout: If auth takes too long (e.g. network issue), force loading to false
+    // Increased to 7 seconds to accommodate slower connections
+    const timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth check timed out, forcing app render...');
         setLoading(false);
       }
-    }, 3000);
+    }, 7000);
 
     async function initializeAuth() {
       try {

@@ -37,6 +37,14 @@ function App() {
 
     let mounted = true;
 
+    // FAIL-SAFE: Force app to load after 3 seconds even if Auth hangs
+    const authTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth check timed out, forcing app load...');
+        setLoading(false);
+      }
+    }, 3000);
+
     async function initializeAuth() {
       try {
         // 1. Check active session immediately
@@ -49,6 +57,7 @@ function App() {
       } catch (error) {
         console.error('Auth initialization error:', error);
       } finally {
+        clearTimeout(authTimeout);
         // 2. ONLY set loading to false after the initial check is done
         if (mounted) {
           setLoading(false);

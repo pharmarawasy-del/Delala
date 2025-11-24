@@ -59,13 +59,13 @@ export default function LoginModal({ isOpen, onClose }) {
             });
             if (error) throw error;
 
-            // Successful login
-            onClose();
+            // CRITICAL: Force reload to ensure fresh auth state and routing
+            window.location.href = '/';
         } catch (err) {
             setError(err.message);
-        } finally {
-            setLoading(false);
+            setLoading(false); // Only stop loading on error
         }
+        // Note: We intentionally don't set loading(false) on success because the page is reloading
     };
 
     const handleResendOtp = () => {

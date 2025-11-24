@@ -3,6 +3,7 @@ import { Car, Smartphone, Armchair, Home, Upload, Check, X, Plus } from 'lucide-
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import imageCompression from 'browser-image-compression';
+import heic2any from 'heic2any';
 
 const CATEGORIES = [
     { id: 'vehicles', name: 'سيارات', icon: Car },
@@ -90,27 +91,30 @@ export default function PostAdForm() {
                 try {
                     let fileToProcess = file;
 
-                    // A. Handle HEIC files if present
+                    // Step 1: HEIC Check & Conversion
                     if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
                         try {
-                            const heic2any = (await import('heic2any')).default;
                             const convertedBlob = await heic2any({
                                 blob: file,
                                 toType: 'image/jpeg',
                                 quality: 0.8
                             });
+
+                            // Handle if heic2any returns an array (for multi-image heic) or single blob
+                            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+
                             fileToProcess = new File(
-                                [Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob],
+                                [blob],
                                 file.name.replace(/\.(heic|heif)$/i, '.jpg'),
                                 { type: 'image/jpeg' }
                             );
                         } catch (heicError) {
-                            console.warn("HEIC conversion failed or dependency missing, attempting normal compression:", heicError);
+                            console.warn("HEIC conversion failed, attempting normal compression:", heicError);
                             // Do not fail here, try to process original file
                         }
                     }
 
-                    // B. Universal Compression & JPEG Conversion
+                    // Step 2: Universal Compression (Force JPEG)
                     const options = {
                         maxSizeMB: 0.8,
                         maxWidthOrHeight: 1920,
@@ -121,7 +125,11 @@ export default function PostAdForm() {
                     let fileToUpload = fileToProcess;
                     try {
                         const compressedFile = await imageCompression(fileToProcess, options);
-                        fileToUpload = compressedFile;
+
+                        // Step 3: Rename (Ensure .jpg extension)
+                        const newName = compressedFile.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                        fileToUpload = new File([compressedFile], newName, { type: "image/jpeg" });
+
                     } catch (compressionError) {
                         console.warn("Image compression failed, using original file:", compressionError);
                     }

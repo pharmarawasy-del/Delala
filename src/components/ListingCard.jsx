@@ -4,17 +4,9 @@ import { Link } from 'react-router-dom';
 
 export default function ListingCard({ item, onContactClick }) {
     // Helper to safely get the main image
-    const getMainImage = (ad) => {
-        if (Array.isArray(ad.images) && ad.images.length > 0) {
-            return ad.images[0];
-        }
-        if (typeof ad.images === 'string' && ad.images.trim() !== '') {
-            return ad.images;
-        }
-        return "https://placehold.co/600x400/e2e8f0/1e293b?text=No+Image";
-    };
-
-    const thumbnail = getMainImage(item);
+    const imageUrl = (item.images && item.images.length > 0)
+        ? item.images[0]
+        : 'https://placehold.co/400x300?text=No+Image';
 
     return (
         <div className="bg-white border-b border-gray-200 py-3 px-2 hover:bg-gray-50 transition-colors">
@@ -22,7 +14,7 @@ export default function ListingCard({ item, onContactClick }) {
                 {/* Image - Right Side (RTL) */}
                 <div className="w-28 h-28 flex-shrink-0">
                     <img
-                        src={thumbnail}
+                        src={imageUrl}
                         alt={item.title}
                         loading="lazy"
                         className="w-full h-full object-cover rounded-md border border-gray-200"
